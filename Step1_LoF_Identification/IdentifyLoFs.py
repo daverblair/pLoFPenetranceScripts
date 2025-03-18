@@ -11,18 +11,27 @@ def ParseLoFVariants(transcript,position,delta_aa):
 	else:
 		return (transcript,position,'','')
 
-#initialize new 
-gene_info_table = pd.read_pickle('~/Desktop/Research/PDS_Project/Data/ClinGenHaploinsufficientDiseases/HaploinsuffientGenes_BasicGeneInfo.pth')
-pc_transcript_table=pd.read_pickle('~/Desktop/Research/PDS_Project/Data/ClinGenHaploinsufficientDiseases/HaploinsuffientGenes_CompleteTranscriptInfo.pth')
+# Read in basic gene/transcript information
+gene_info_table = pd.read_pickle('/Path/to/Auxillary_Data/HaploinsuffientGenes_BasicGeneInfo.pth')
+pc_transcript_table=pd.read_pickle('/Path/to/Auxillary_Data/HaploinsuffientGenes_CompleteTranscriptInfo.pth')
 
 
+#Store all of the LoF information (no sample info) in Table
 lof_table={'CHROM':[],'POS':[],'SYMBOL':[],'GENE_ID':[],'ID':[],'TX_ID':[],'REF':[],'ALT':[],'CONSEQUENCE':[],'PROT_POS':[],'REF_AA':[],'ALT_AA':[],'LOFTEE_CLASS':[],'CLINVAR_CLNSIG':[],'CLINVAR_CLNREVSTAT':[]}
-rev_gene_list=open('../VariantData/TargetVariants/GeneList_wLoF.txt','w')
+
+#Keep track of which genes actually have a pLoF
+rev_gene_list=open('/Output/Path/to/Store/Variant/Data/GeneList_wLoF.txt','w')
+
+#Loop over gene symbols
 for symbol in gene_info_table.index:
 	
 	print('Identifying LoF variants for gene {0:s} ...'.format(symbol))
-	f=open('../VariantData/TargetVariants/{0:s}_HaploLOFVariants_TargetCoords.txt'.format(symbol),'w')
-	current_vcf=VCF("../VariantData/Annotated_GeneVCFs/{0:s}_UKBB_Exome_Annotated_NoSamples.vcf.gz".format(symbol))
+
+	#open a file to write the coordinates of each gene. This is used by bcftools to pull out sample data on the UKBB RAP
+	f=open('/Output/Path/to/Store/Variant/Data/{0:s}_HaploLOFVariants_TargetCoords.txt'.format(symbol),'w')
+
+	#Open the VCF for the gene symbol and parse the header. Note, this script assumes that a gene-specific VCF of the all the biobank variants was created and stripped of all sample information
+	current_vcf=VCF("/Path/to/VCF/Files/{0:s}_Exome_Annotated_NoSamples.vcf.gz".format(symbol))
 	header_id_dict={}
 	for header_entry in current_vcf.header_iter():
 		if header_entry.type=='INFO':
@@ -30,21 +39,28 @@ for symbol in gene_info_table.index:
 
 	CSQ_Columns=header_id_dict['CSQ'].strip('"').split('Format:')[1].strip().split('|')
 	total_LoFs=0
+	# Loop over the variants in the VCF
 	for variant in current_vcf:
 		info=variant.INFO.get('CSQ').split(',')
 		if len(variant.ALT)>1:
 			AF=list(variant.INFO.get('AF'))
 		else:
 			AF=[variant.INFO.get('AF')]
+
+		# determine the number of transcripts/features and the number of variants assigned to a VCF entry
 		num_features=int(len(info)/len(variant.ALT))
 		num_variants=len(variant.ALT)
 		id_list=variant.ID.split(';')
 
 		is_lof=False
+
+		#Loop over variants and features, parsing the CSQ information
 		for t_num in range(num_features):
 			for v_num in range(num_variants):
 				parsed_info=dict(zip(CSQ_Columns,info[t_num*num_variants+v_num].split('|')))
+				#Make sure that the data stored for the entry is relevant to our gene list
 				if parsed_info['Feature_type']=='Transcript' and parsed_info['Feature'] in gene_info_table.loc[symbol]['ALL_PC_TXs']:
+					#Use the LOFTEE annotation to determine if it is a pLoF. If so extract, the information and store it in a table
 					if parsed_info['LoF'] in set(['HC','LC']):
 						#LOF Variant!
 						is_lof=True
@@ -66,12 +82,16 @@ for symbol in gene_info_table.index:
 						lof_table['CLINVAR_CLNREVSTAT']+=[parsed_info['ClinVar_CLNREVSTAT']]	
 						total_LoFs+=1
 		if is_lof==True:
+			#write the variant position to our variant list file for bcftools extraction
 			f.write('{0:s}\t{1:d}\n'.format(variant.CHROM,variant.POS))
+	#if the gene has pLoFs, write it to our list of genes with pLoFs
 	if total_LoFs>0:
 		rev_gene_list.write('{0:s}\n'.format(symbol))
 	f.close()
 rev_gene_list.close()
 
+
+#Convert dictionary to datafame, set index as variant ID
 variant_table=pd.DataFrame(lof_table)
 duplicated_info = variant_table.loc[variant_table['ID'].duplicated(keep=False)].copy()
 duplicated_ids = variant_table.loc[variant_table['ID'].duplicated(keep=False)]['ID'].unique()
@@ -117,8 +137,9 @@ for d_id in duplicated_ids:
 		target_tx['TX_ANNOT'] = pd.Series(['NONE'],index=[d_id])
 		variant_table_collapsed=variant_table_collapsed._append(target_tx,ignore_index=False)
 
+# Write two versions of the table to disk: python pickle and tab-delimited text file
 variant_table_collapsed=variant_table_collapsed.loc[variant_table_collapsed.index.sort_values()]
 variant_table_collapsed=variant_table_collapsed[['CHROM','POS','SYMBOL','GENE_ID','TX_ID','TX_ANNOT','REF','ALT','CONSEQUENCE','PROT_POS','REF_AA','ALT_AA','LOFTEE_CLASS','CLINVAR_CLNSIG','CLINVAR_CLNREVSTAT']]
-variant_table_collapsed.to_pickle('../VariantData/AllHaploLOFVariants/AllHaploLOFVariants_NoScores.pth')
-variant_table_collapsed.to_csv('../VariantData/AllHaploLOFVariants/AllHaploLOFVariants_NoScores.txt',sep='\t')
+variant_table_collapsed.to_pickle('/Output/Path/to/Store/Variant/Data/AllHaploLOFVariants_NoScores.pth')
+variant_table_collapsed.to_csv('/Output/Path/to/Store/Variant/Data/AllHaploLOFVariants_NoScores.txt',sep='\t')
 
