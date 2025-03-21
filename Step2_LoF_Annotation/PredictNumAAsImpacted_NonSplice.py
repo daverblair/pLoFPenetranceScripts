@@ -2,13 +2,15 @@ import pandas as pd
 import numpy as np
 import tqdm
 import sys
-sys.path.append('/Users/davidblair/Desktop/Research/VariantAnnotation/AuxFunctions')
+sys.path.append('/Path/to/Auxillary_Functions/')
 from SequenceAnalysisFunctions import *
 
 
-pc_transcript_table=pd.read_pickle('~/Desktop/Research/PDS_Project/Data/ClinGenHaploinsufficientDiseases/HaploinsuffientGenes_CompleteTranscriptInfo.pth')
-full_sequences=pd.read_pickle('/Users/davidblair/Desktop/Research/PDS_Project/Data/ClinGenHaploinsufficientDiseases/HaploinsuffientGenes_FullSequences.pth')
-variant_table = pd.read_pickle('../VariantData/AllHaploLOFVariants/AllHaploLOFVariants_NoScores.pth')
+# This script predicts the fraction of amino acids impacted for non-splice variants. Splice variants AA impact is predicted using the ParseSpliceAIResults.py script 
+
+pc_transcript_table=pd.read_pickle('/Path/to/Auxillary_Data//HaploinsuffientGenes_CompleteTranscriptInfo.pth')
+full_sequences=pd.read_pickle('/Path/to/Auxillary_Data//HaploinsuffientGenes_FullSequences.pth')
+variant_table = pd.read_pickle('/Path/to/Variant/Data/AllHaploLOFVariants_NoScores.pth')
 normalized_varaint_csq=variant_table['CONSEQUENCE'].apply(lambda x:NormalizeVariantCsq(x.split('&')))
 pc_transcript_table['AA_LENGTH']=full_sequences.loc[pc_transcript_table.index]['AA'].apply(lambda x: len(x))
 
@@ -41,8 +43,8 @@ for variant_id in tqdm.tqdm(variant_table.index):
 
 output=pd.DataFrame(output)
 output.set_index('VARIANT_ID',inplace=True)
-output.to_pickle('../VariantData/AllHaploLOFVariants/Scores/NumAAsImpacted_NonSplice.pth')
-output.to_csv('../VariantData/AllHaploLOFVariants/Scores/NumAAsImpacted_NonSplice.txt',sep='\t',index=True)
+output.to_pickle('/Path/to/ScoreOutput/NumAAsImpacted_NonSplice.pth')
+output.to_csv('/Path/to/ScoreOutput/NumAAsImpacted_NonSplice.txt',sep='\t',index=True)
 
 
 

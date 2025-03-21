@@ -3,12 +3,14 @@ import numpy as np
 import tqdm
 import gget
 import sys
-sys.path.append('/Users/davidblair/Desktop/Research/VariantAnnotation/AuxFunctions')
+sys.path.append('/Path/to/Auxillary_Functions/')
 from SequenceAnalysisFunctions import *
 
+#This script predicts NMD escape for stop gain variants using function from the SequenceAnalysisFunctions.py file 
 
-pc_transcript_table=pd.read_pickle('~/Desktop/Research/PDS_Project/Data/ClinGenHaploinsufficientDiseases/HaploinsuffientGenes_CompleteTranscriptInfo.pth')
-variant_table = pd.read_pickle('../VariantData/AllHaploLOFVariants/AllHaploLOFVariants_NoScores.pth')
+
+pc_transcript_table=pd.read_pickle('/Path/to/Auxillary_Data/HaploinsuffientGenes_CompleteTranscriptInfo.pth')
+variant_table = pd.read_pickle('/Path/to/Variant/Data/AllHaploLOFVariants_NoScores.pth')
 normalized_varaint_csq=variant_table['CONSEQUENCE'].apply(lambda x:NormalizeVariantCsq(x.split('&')))
 
 
@@ -33,7 +35,7 @@ for variant_id in tqdm.tqdm(variant_table.index):
 
 output=pd.DataFrame(output)
 output.set_index('VARIANT_ID',inplace=True)
-output.to_pickle('../VariantData/AllHaploLOFVariants/Scores/PTC_NMDEscape.pth')
-output.to_csv('../VariantData/AllHaploLOFVariants/Scores/PTC_NMDEscape.txt',sep='\t',index=True)
+output.to_pickle('/Path/to/ScoreOutput/PTC_NMDEscape.pth')
+output.to_csv('/Path/to/ScoreOutput/PTC_NMDEscape.txt',sep='\t',index=True)
 
 

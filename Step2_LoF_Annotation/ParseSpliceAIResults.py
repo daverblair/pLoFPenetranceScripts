@@ -2,15 +2,17 @@ import pandas as pd
 import numpy as np
 import tqdm
 import sys
-sys.path.append('/Users/davidblair/Desktop/Research/VariantAnnotation/AuxFunctions')
+sys.path.append('/Path/to/Auxillary_Functions/')
 from SequenceAnalysisFunctions import NormalizeVariantCsq,ParseSpliceAI,ReturnPrimarySpliceInfo,PredictDonorGainRescue,PredictDonorLossRescue,PredictAcceptorGainRescue,PredictAcceptorLossRescue
 
+#This script parses the output from SpliceAI, generating the genomic features described in the Supplementary Methods, including the fraction of amino acids impacted.
 
-variant_table = pd.read_pickle('../VariantData/AllHaploLOFVariants/AllHaploLOFVariants_NoScores.pth')
-spliceai_lof=ParseSpliceAI('../VariantData/AllHaploLOFVariants/Scores/AllHaploLOFVariants_spliceAI_Scores_500bp.vcf.gz')
+
+variant_table = pd.read_pickle('/Path/to/Variants/AllHaploLOFVariants_NoScores.pth')
+spliceai_lof=ParseSpliceAI('/Path/to/SpliceAI/Results/AllHaploLOFVariants_spliceAI_Scores_500bp.vcf.gz')
 normalized_varaint_csq=variant_table['CONSEQUENCE'].apply(lambda x:NormalizeVariantCsq(x.split('&')))
-pc_transcript_table=pd.read_pickle('/Users/davidblair/Desktop/Research/PDS_Project/Data/ClinGenHaploinsufficientDiseases/HaploinsuffientGenes_CompleteTranscriptInfo.pth')
-full_sequence_table=pd.read_pickle('/Users/davidblair/Desktop/Research/PDS_Project/Data/ClinGenHaploinsufficientDiseases/HaploinsuffientGenes_FullSequences.pth')
+pc_transcript_table=pd.read_pickle('/Path/to/Auxillary_Data/HaploinsuffientGenes_CompleteTranscriptInfo.pth')
+full_sequence_table=pd.read_pickle('/Path/to/Auxillary_Data/HaploinsuffientGenes_FullSequences.pth')
 
 output={'VARIANT_ID':[],'SYMBOL':[],'CSQ_CLASS':[],'PRIMARY_SPLICE_TYPE':[],'PRIMARY_SPLICEAI_SCORE':[],'FRAC_CDS_IMPACTED':[],'RESCUE_FLAGS':[]}
 
@@ -53,5 +55,5 @@ for variant_id in tqdm.tqdm(variant_table.index):
 
 output=pd.DataFrame(output)
 output.set_index('VARIANT_ID',inplace=True)
-output.to_pickle('../VariantData/AllHaploLOFVariants/Scores/SpliceAIScores.pth')
-output.to_csv('../VariantData/AllHaploLOFVariants/Scores/SpliceAIScores.txt',sep='\t',index=True)
+output.to_pickle('/Path/to/ScoreOutput/SpliceAIScores.pth')
+output.to_csv('/Path/to/ScoreOutput/SpliceAIScores.txt',sep='\t',index=True)

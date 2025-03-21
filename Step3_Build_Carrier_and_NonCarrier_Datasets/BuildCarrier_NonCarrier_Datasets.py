@@ -4,6 +4,14 @@ import numpy as np
 import tqdm
 
 
+# This script builds a unique table for each disease, which has one entry per pLoF-variant carrier pair (carriers with multiple variants are dropped from the analysis, see Methods). Each entry includes all of the variant-specific annotations required penetrance estimation/prediction. In addition, it constructs an list-like structure of all the non-carriers and other rare variant carriers. All of this information is stored in a pickled python object for downstream use. This script requires several other data files, described as follows:
+# 1) Sample Count Files: These files contain the number of rare variants carried by each biobank subject, generated using plink2. See 'compute_sample_counts.sh' for an example script for computing these counts in the UKBB RAP. These counts are used to identify the non-carriers. Note, a different strategy was used for AoU based on hail.
+# 2) The table of variant carriers created in 'Step1_LoF_Identification/IdentifyLoFCarriers.py'
+# 3) The pLoF variant genomic features/scores created by the scripts in Step2_LoF_Annotation directory
+# 4) A list of biobank subjects that pass exome level QC (see main methods)
+# 5) A tab-delimited text file/table that contains the clinical data coverage statistics for the biobank. This requires querying the OMOP tables specific to each biobank.
+
+
 def ConvertReviewToStars(rev_string):
 	if rev_string=='practice_guideline':
 		return 4
@@ -38,28 +46,28 @@ def NormalizeClinVarAnnots(annot):
 	possible_clinvar_annots['Conflicting_classifications_of_pathogenicity']='Uncertain'
 	return possible_clinvar_annots[annot]
 
-sample_count_directory='/Users/davidblair/Desktop/Research/PDS_Project/Analysis/4_GenotypeAnnotation/UKBB/VariantData/SampleCounts/'
+sample_count_directory='/Path/to/Biobank/SampleCounts/'
 
 #Disease Dx Info
-dx_code_file=pd.read_pickle('~/Desktop/Research/PDS_Project/Data/ClinGenHaploinsufficientDiseases/CollapsedDxTable.pth')
+dx_code_file=pd.read_pickle('/Path/to/Auxillary_Data/CollapsedDxTable.pth')
 
 ## Load carrier data table
-carrier_file=pd.read_pickle('~/Desktop/Research/PDS_Project/Analysis/4_GenotypeAnnotation/UKBB/VariantData/AllHaploLOFVariants/AllHaploLOFVariants_FilteredCarriers.pth')
+carrier_file=pd.read_pickle('/Path/to/CarrierTable/AllHaploLOFVariants_FilteredCarriers.pth')
 
 ## Score tables
-basic_table = pd.read_pickle('/Users/davidblair/Desktop/Research/PDS_Project/Analysis/4_GenotypeAnnotation/UKBB/VariantData/AllHaploLOFVariants/AllHaploLOFVariants_NoScores.pth')
-cadd_table= pd.read_pickle('/Users/davidblair/Desktop/Research/PDS_Project/Analysis/4_GenotypeAnnotation/UKBB/VariantData/AllHaploLOFVariants/Scores/CADDScores.pth')
-aa_lost_table = pd.read_pickle('/Users/davidblair/Desktop/Research/PDS_Project/Analysis/4_GenotypeAnnotation/UKBB/VariantData/AllHaploLOFVariants/Scores/NumAAsImpacted_NonSplice.pth')
-splice_ai_table = pd.read_pickle('/Users/davidblair/Desktop/Research/PDS_Project/Analysis/4_GenotypeAnnotation/UKBB/VariantData/AllHaploLOFVariants/Scores/SpliceAIScores.pth')
-nmd_escape_table = pd.read_pickle('/Users/davidblair/Desktop/Research/PDS_Project/Analysis/4_GenotypeAnnotation/UKBB/VariantData/AllHaploLOFVariants/Scores/PTC_NMDEscape.pth')
+basic_table = pd.read_pickle('/Path/to/Scores/AllHaploLOFVariants_NoScores.pth')
+cadd_table= pd.read_pickle('/Path/to/Scores/Scores/CADDScores.pth')
+aa_lost_table = pd.read_pickle('/Path/to/Scores/NumAAsImpacted_NonSplice.pth')
+splice_ai_table = pd.read_pickle('/Path/to/Scores/SpliceAIScores.pth')
+nmd_escape_table = pd.read_pickle('/Path/to/Scores/PTC_NMDEscape.pth')
 
 
 ## Remove subjects who have NO diagnostic data whatsoever, which can bias results
-coverage_data=pd.read_pickle('../Datasets/CovariateDatasets/UKBB_CoverageTable.pth')
+coverage_data=pd.read_csv('Path/to/CovariateDatasets/UKBB_CoverageTable.pth',sep='\t')
 allowed_subjects=coverage_data.index[pd.isna(coverage_data['CoverageYears'])==False]
 
 ## remove subjects filtered out of exome QC analysis
-pass_exome_qc = list(map(str,pd.read_csv('/Users/davidblair/Desktop/Research/PDS_Project/Data/UKBB/ExomeSampleQC/All_UKKBB_QCSamples.txt',sep='\t',header=None)[0].values))
+pass_exome_qc = list(map(str,pd.read_csv('/Path/to/QCData/All_UKKBB_QCSamples.txt',sep='\t',header=None)[0].values))
 allowed_subjects=allowed_subjects.intersection(pass_exome_qc)
 
 # ## all LOF Carriers
@@ -133,7 +141,7 @@ for dis_abbrev in tqdm.tqdm(dx_code_file.index):
 	dataset['other_rare_variant_carriers']=other_rare_variant_carriers
 	dataset['non_carriers']=non_carriers
 
-	with open('../Datasets/CarrierInfoFiles/{0:s}_CarrierInfo.pth'.format(dis_abbrev),'wb') as f:
+	with open('/Path/to/CarrierDatasets/{0:s}_CarrierInfo.pth'.format(dis_abbrev),'wb') as f:
 		pickle.dump(dataset,f)
 
 
